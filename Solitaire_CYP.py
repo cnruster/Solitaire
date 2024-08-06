@@ -291,76 +291,29 @@ class Solitaire:
             return 0
         # must have 0<=hidden1<len(pile1)
         hidden1 = self.hidden[x1]
+        pile1_top = pile1[-1]
         pile2 = self.piles[x2]
         if pile2:
-            count = Solitaire.find_tail_straight(pile1, hidden1, pile2[-1])
+            pile2_top = pile2[-1]
+            rank_diff = pile2_top.rank - pile1_top.rank
+            if (rank_diff <= 0) or ((rank_diff % 2)^(pile2_top.red != pile1_top.red)):
+                # apparent rank or color mismatch
+                return 0
         else:
-            count = Solitaire.find_tail_k_straight(pile1, hidden1)
-
+            # pile1_top.rank is ensured to be <=12
+            rank_diff = 13 - pile1_top.rank
+        # check if the straight is long enough
+        count = rank_diff if len(pile1)-rank_diff >= hidden1 else 0
         if count:
             pile2.extend(pile1[-count:])
             del pile1[-count:]
             # if all the shown segment is moved, then show the top-most card of the hidden segment
             if hidden1 == len(pile1) and hidden1>0:
                 self.hidden[x1] = hidden1-1
-            # always ensured that 0<=hidden<len or hidden==len==0
+            # it is always ensured 0<=hidden<len or hidden==len==0
             self.update_pile(x1)
             self.update_pile(x2)
-
         return count
-
-    # find the length of the straight that can follow a lead-card on the tail of the pile's shown segment
-    @staticmethod
-    def find_tail_straight(pile, hidden, lead_card):
-        pile_len = len(pile)
-        if hidden == pile_len:  # the shown segment has length 0
-            return 0
-
-        index = pile_len-1
-        pile_top = pile[index]
-        # check if their colors match. if not, then don't go into hopeless loop
-        if (lead_card.rank - pile_top.rank)%2 == 0:
-            if lead_card.red != pile_top.red:
-                return 0
-        else:
-            if lead_card.red == pile_top.red:
-                return 0
-
-        while index >= hidden:
-            # to form a straight the ranks must be consecutive and the colors must be alternating
-            if (index == pile_len - 1 or
-                    (pile[index].rank - pile[index + 1].rank == 1 and
-                     pile[index].red != pile[index + 1].red)):
-                if pile[index].rank == lead_card.rank - 1:
-                    # the straight can follow the specified lead-card
-                    return pile_len - index
-                index -= 1
-            else:
-                break
-        # the straight can't follow the specified lead-card
-        return 0
-
-    # find the length of the straight that begins with a K on the tail of the pile's shown segment
-    @staticmethod
-    def find_tail_k_straight(pile, hidden):
-        pile_len = len(pile)
-        if hidden==pile_len:  # the shown segment has length 0
-            return 0
-
-        index = pile_len-1
-        while index >= hidden:
-            # to form a straight the ranks must be consecutive and the colors must be alternating
-            if (index==pile_len-1 or
-                    (pile[index].rank - pile[index+1].rank == 1 and
-                    pile[index].red != pile[index+1].red)):
-                if pile[index].rank == 12:  # 12 is the rank of a K card
-                    # the straight begins with a K card, so return its length
-                    return pile_len - index
-                index -= 1
-            else:
-                break
-        # the straight does not begin with a K card
-        return 0
 
     def check_win(self):
         if all([len(stack) == 13 for stack in self.stacks]):
