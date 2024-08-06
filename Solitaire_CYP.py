@@ -224,19 +224,18 @@ class Solitaire:
                 return 0
         else:
             s = deck_card.suit  # s==-1: move to the stack for the suit of the deck card
-        count = 0  # count of cards that can be moved
         stack = self.stacks[s]
         if stack:
-            if deck_card.rank-stack[-1].rank == 1:
-                count = 1
-        elif deck_card.rank == 0:  # deck card is an A which can move into an empty stack
-            count = 1
-        if count:
-            self.remove_deck_card()
-            stack.append(deck_card)
-            self.update_stack(s)
-            self.check_win()
-        return count
+            if deck_card.rank-stack[-1].rank != 1:
+                return 0
+        elif deck_card.rank != 0:  # only an A can move into an empty stack
+            return 0
+
+        self.remove_deck_card()
+        stack.append(deck_card)
+        self.update_stack(s)
+        self.check_win()
+        return 1
 
     def move_pile_to_stack(self, x, s):
         pile = self.piles[x]
@@ -248,42 +247,40 @@ class Solitaire:
                 return 0
         else:
             s = pile_top.suit  #
-        count = 0  # count of cards that can be moved
         stack = self.stacks[s]
         if stack:
-            if pile_top.rank-stack[-1].rank == 1:
-                count = 1
-        elif pile_top.rank == 0:
-            count = 1
-        if count:
-            del pile[-1]
-            hidden = self.hidden[x]
-            # to ensure that 0<=hidden<len or hidden==len==0
-            if hidden == len(pile) and hidden>0:
-                self.hidden[x] = hidden-1  # the new top card now shows its front face
-            stack.append(pile_top)
-            self.update_pile(x)
-            self.update_stack(s)
-            self.check_win()
-        return count
+            if pile_top.rank-stack[-1].rank != 1:
+                return 0
+        elif pile_top.rank != 0:
+            return 0
+
+        del pile[-1]
+        hidden = self.hidden[x]
+        # to ensure that 0<=hidden<len or hidden==len==0
+        if hidden == len(pile) and hidden>0:
+            self.hidden[x] = hidden-1  # the new top card now shows its front face
+        stack.append(pile_top)
+        self.update_pile(x)
+        self.update_stack(s)
+        self.check_win()
+        return 1
 
     def move_deck_to_pile(self, x):
         if self.deck_index < 0:
             return 0  # this should never happen
         deck_card = self.deck[self.deck_index]
-        count = 0  # count of cards that can be moved
         pile = self.piles[x]
         if pile:
             pile_top = pile[-1]
-            if pile_top.rank - deck_card.rank == 1 and pile_top.red != deck_card.red:
-                count = 1
-        elif deck_card.rank == 12:  # only a K card can move to an empty pile
-            count = 1
-        if count:
-            self.remove_deck_card()
-            pile.append(deck_card)
-            self.update_pile(x)
-        return count
+            if pile_top.rank - deck_card.rank != 1 or pile_top.red == deck_card.red:
+                return 0
+        elif deck_card.rank != 12:  # only a K card can move to an empty pile
+            return 0
+   
+        self.remove_deck_card()
+        pile.append(deck_card)
+        self.update_pile(x)
+        return 1
 
     def move_pile_to_pile(self, x1, x2):
         pile1 = self.piles[x1]
@@ -302,18 +299,19 @@ class Solitaire:
         else:
             # pile1_top.rank is ensured to be <=12
             rank_diff = 13 - pile1_top.rank
-        # check if the straight is long enough
-        count = rank_diff if len(pile1)-rank_diff >= hidden1 else 0
-        if count:
-            pile2.extend(pile1[-count:])
-            del pile1[-count:]
-            # if all the shown segment is moved, then show the top-most card of the hidden segment
-            if hidden1 == len(pile1) and hidden1>0:
-                self.hidden[x1] = hidden1-1
-            # it is always ensured 0<=hidden<len or hidden==len==0
-            self.update_pile(x1)
-            self.update_pile(x2)
-        return count
+        # check if a complete straight is there to move
+        if hidden1+rank_diff > len(pile1):
+            return 0
+
+        pile2.extend(pile1[-rank_diff:])
+        del pile1[-rank_diff:]
+        # if all the shown segment is moved, then show the top-most card of the hidden segment
+        if hidden1 == len(pile1) and hidden1>0:
+            self.hidden[x1] = hidden1-1
+        # it is always ensured 0<=hidden<len or hidden==len==0
+        self.update_pile(x1)
+        self.update_pile(x2)
+        return rank_diff
 
     def check_win(self):
         if all([len(stack) == 13 for stack in self.stacks]):
