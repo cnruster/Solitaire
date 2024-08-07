@@ -112,19 +112,19 @@ class Solitaire:
             # we can ensure self.deck_index < len(self.deck) so no need to check it
             self.canvas.create_image(190, 50, anchor=NW, image=self.deck[self.deck_index],
                                      tag="deck_card_img")
-            
+
     def update_stack(self, s):
         rect_tag = f"stack_{SUITS[s]}"
         img_tag = f"stack_{SUITS[s]}_img"
         self.canvas.delete(rect_tag)
         self.canvas.delete(img_tag)
-        self.canvas.create_rectangle(530+170*s, 50, 680+170*s, 250, outline="darkgray", fill="lightgrey",
+        self.canvas.create_rectangle(530 + 170 * s, 50, 680 + 170 * s, 250, outline="darkgray", fill="lightgrey",
                                      tag=rect_tag)
         stack = self.stacks[s]
         if stack:
-            self.canvas.create_image(530+170*s, 50, anchor=NW, image=stack[-1], tag=img_tag)
+            self.canvas.create_image(530 + 170 * s, 50, anchor=NW, image=stack[-1], tag=img_tag)
         else:
-            self.canvas.create_image(580+170*s, 125, anchor=NW, image=self.suit_images[s], tag=img_tag)
+            self.canvas.create_image(580 + 170 * s, 125, anchor=NW, image=self.suit_images[s], tag=img_tag)
 
     def update_pile(self, x):
         rect_tag = f"pile{x}"
@@ -135,14 +135,14 @@ class Solitaire:
         pile_len = len(pile)
         pile_left = 20 + 170 * x
         if pile_len:
-            self.canvas.create_rectangle(pile_left, 300, 170+170*x, 485+15*pile_len,
+            self.canvas.create_rectangle(pile_left, 300, 170 + 170 * x, 485 + 15 * pile_len,
                                          outline="darkgray", fill="lightgrey", tag=rect_tag)
             hidden = self.hidden[x]
             for y in range(pile_len):
-                self.canvas.create_image(pile_left, 300+15*y, anchor=NW,
-                                         image=self.boc_img if y<hidden else pile[y], tag=img_tag)
+                self.canvas.create_image(pile_left, 300 + 15 * y, anchor=NW,
+                                         image=self.boc_img if y < hidden else pile[y], tag=img_tag)
         else:  # the pile is empty
-            self.canvas.create_rectangle(pile_left, 300, 170+170*x, 500,
+            self.canvas.create_rectangle(pile_left, 300, 170 + 170 * x, 500,
                                          outline="darkgray", fill="lightgrey", tag=rect_tag)
             self.canvas.create_image(pile_left, 300, anchor=NW,
                                      image=self.empty_pile_img, tag=img_tag)
@@ -153,9 +153,10 @@ class Solitaire:
         cur_item = self.find_item(event)  # find the item currently clicked
         if "deck_back" in cur_item:  # we clicked on the deck back
             self.deck_next()
-        elif cur_item and cur_item != src_item:
-            if not self.move(src_item, cur_item):  # can't move anything from src to cur
-                self.select_item(cur_item)
+        elif cur_item == src_item:
+            pass
+        elif not src_item or not self.move(src_item, cur_item):
+            self.select_item(cur_item)
 
     def ondblclick(self, event):
         self.deselect()
@@ -169,11 +170,11 @@ class Solitaire:
         item_id = self.canvas.find_closest(event.x, event.y)
         item_tag = self.canvas.itemcget(item_id, "tag")
         return item_tag.replace(" current", "").replace("_img", "") if item_tag != "current" else ""
-    
+
     def select_item(self, item):
         self.canvas.itemconfig(item, outline="yellow", width=5)
         self.selected_item = item
-        
+
     def deselect(self):
         sel_item = self.selected_item
         if sel_item:
@@ -207,7 +208,7 @@ class Solitaire:
             # move to the stack to which the top card belongs
             return self.move_pile_to_stack(int(src_item[4]), -1)
         return 0
-    
+
     def remove_deck_card(self):
         # we can ensure 0 <= self.deck_index < len(self.deck)
         del self.deck[self.deck_index]
@@ -226,7 +227,7 @@ class Solitaire:
             s = deck_card.suit  # s==-1: move to the stack for the suit of the deck card
         stack = self.stacks[s]
         if stack:
-            if deck_card.rank-stack[-1].rank != 1:
+            if deck_card.rank - stack[-1].rank != 1:
                 return 0
         elif deck_card.rank != 0:  # only an A can move into an empty stack
             return 0
@@ -242,14 +243,14 @@ class Solitaire:
         if not pile:
             return 0
         pile_top = pile[-1]
-        if s>=0:
+        if s >= 0:
             if s != pile_top.suit:  # not the same suit
                 return 0
         else:
-            s = pile_top.suit  #
+            s = pile_top.suit  # s==-1: move to the stack for the suit of the pile's top card
         stack = self.stacks[s]
         if stack:
-            if pile_top.rank-stack[-1].rank != 1:
+            if pile_top.rank - stack[-1].rank != 1:
                 return 0
         elif pile_top.rank != 0:
             return 0
@@ -257,8 +258,8 @@ class Solitaire:
         del pile[-1]
         hidden = self.hidden[x]
         # to ensure that 0<=hidden<len or hidden==len==0
-        if hidden == len(pile) and hidden>0:
-            self.hidden[x] = hidden-1  # the new top card now shows its front face
+        if hidden == len(pile) and hidden > 0:
+            self.hidden[x] = hidden - 1  # the new top card now shows its front face
         stack.append(pile_top)
         self.update_pile(x)
         self.update_stack(s)
@@ -276,7 +277,7 @@ class Solitaire:
                 return 0
         elif deck_card.rank != 12:  # only a K card can move to an empty pile
             return 0
-   
+
         self.remove_deck_card()
         pile.append(deck_card)
         self.update_pile(x)
@@ -293,21 +294,21 @@ class Solitaire:
         if pile2:
             pile2_top = pile2[-1]
             rank_diff = pile2_top.rank - pile1_top.rank
-            if (rank_diff <= 0) or ((rank_diff % 2)^(pile2_top.red != pile1_top.red)):
+            if (rank_diff <= 0) or ((rank_diff % 2) ^ (pile2_top.red != pile1_top.red)):
                 # apparent rank or color mismatch
                 return 0
         else:
             # pile1_top.rank is ensured to be <=12
             rank_diff = 13 - pile1_top.rank
         # check if a complete straight is there to move
-        if hidden1+rank_diff > len(pile1):
+        if hidden1 + rank_diff > len(pile1):
             return 0
-
+        # now begin the actual moving
         pile2.extend(pile1[-rank_diff:])
         del pile1[-rank_diff:]
         # if all the shown segment is moved, then show the top-most card of the hidden segment
-        if hidden1 == len(pile1) and hidden1>0:
-            self.hidden[x1] = hidden1-1
+        if hidden1 == len(pile1) and hidden1 > 0:
+            self.hidden[x1] = hidden1 - 1
         # it is always ensured 0<=hidden<len or hidden==len==0
         self.update_pile(x1)
         self.update_pile(x2)
